@@ -1,0 +1,82 @@
+@startuml
+
+entity firmware {
+    id: long
+    version: String
+    ' Ready_to_release | Release | Develop
+    status: String
+}
+
+entity device_type {
+    id: long
+    ' electricity_lamp | temperature | ....
+    type: String
+}
+
+entity device_telemetry {
+    id: long
+    data: String
+    --
+    *device_id : long<<FK>>
+}
+
+entity device {
+    id: long
+    name: String
+    status: String
+    serial_number: String
+    --
+    *firmware_id : long<<FK>>
+    *device_type_id : long<<FK>>
+}
+
+entity house {
+    id: long
+    address: String
+    --
+    *user_group_id : long<<FK>>
+    *settings_id: long<<FK>>
+}
+
+entity house_setting {
+    id: long
+    ' Поддержание температуры на определенном уровне и пр
+    setting: String
+    --
+    *house_id : long<<FK>>
+}
+
+
+entity user {
+    id: long
+    name: String
+    email: String
+}
+
+entity user_group {
+    id: long
+    role: String
+    --
+    *user_id : long<<FK>> 
+}
+
+
+' user 
+
+user_group ||..o{ user
+user_group ||..o{ house
+
+' house
+house ||..o{ house_setting
+house ||..o{ device
+
+' device
+device ||..o{ device_telemetry
+device ||..o device_type
+device ||..o firmware
+
+
+
+
+
+@enduml

@@ -1,0 +1,92 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title "Умный Дом: Диаграмма контейнеров"
+
+AddElementTag("db", $bgColor="#873512")
+
+Person(user, "Пользователь", "Управляет умным домом через веб или мобильное приложения")
+Person(admin, "Администратор", "Администрирует систему. Обрабатывает заявки. Назначает тех специалистов")
+Person(tech, "Тех. Специалсит", "Устанавливает и обслуживает приборыы умного дома")
+
+System_Boundary("SmartHomeSystem", "Система умного дома") {
+    Boundary("ClientUser", "Клиент пользователя") {
+        Container(clientUserWeb, "Single Page App", "React", "Клиентское web приложение для взаимодействия с умным домом")
+        Container(clientUserMobile, "Mobile App", "Flutter", "Мобильное приложение для взаимодействия с умным домом")
+    }
+    Boundary("ClientAdmin", "Клиент администратора") {
+        Container(clientAdminWeb, "Single Page App", "React", "Клиентское web приложение для администрирования умного дома")
+    }
+    Boundary("ClientTech", "Клиент администратора") {
+        Container(clientTechMobile, "Mobile App", "Flutter", "Мобильное приложение для тех специалистов")
+    }
+
+    Boundary("Gateway", "Api Gateway") {
+        Container(apiGateway, "API Gateway", "Kong", "Единая точка входа для всех клиентских запросов. Маршрутизация. Авторизация")
+        ContainerDb(cache, "Кеш", "Redis", "Кеш запросов", $tags="db")
+    }
+
+    Boundary("ApealAndSupport", "Обращения и заявки") {
+        Container(appealAndSupport, "Обращения и заявки", "Java", "Обработка обращений, жалоб пользователей. Заявки на подключение/обслуживание устройств")
+        ContainerDb(appealAndSupportDb, "БД", "PostgreSQL", "История обращений", $tags="db")
+    }
+
+    Boundary("User", "Управление профилем") {
+        Container(userProfile, "Профиль клиента", "Java", "Редактирование профиля, аватара и тд")
+        ContainerDb(userProfileDb, "БД", "PostgreSQL", "Данные клиента", $tags="db")
+    }
+
+    Boundary("Device", "Управление приборами") {
+        Container(deviceManager, "Управление приборами", "Java", "Хранение/обработка телеметрии. Inventory. Отправка команд")
+        ContainerDb(deviceTelemetryDB, "БД", "MongoDB", "Телеметрия", $tags="db")
+        Container(deviceConsumer, "Consumer телеметрии", "kafka", "Принятие телеметрии")
+    }
+
+    Boundary("MessageBroker", "Message Broker") {
+        Container(messageBroker, "Message Broker", "Kafka", "События телеметрии устройств")
+    }
+
+    Boundary("DeviceConnector", "Связь с устройством") {
+        Container(deviceConnector, "Device Conntector", "Go", "Сервис для взаимодействия с реальными устройствами")
+    }
+
+}
+
+System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
+
+' Взимодействие пользователей с приложением
+Rel_Down(user, clientUserWeb, "Управление умным домом")
+Rel_Down(user, clientUserMobile, "Управление умным домом")
+Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок")
+Rel_Down(tech, clientTechMobile, "Обслуживание умного дама")
+
+' Взимодействие gateway
+Rel_Down(clientUserWeb,apiGateway, "маршрутизация запросов")
+Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов")
+Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов")
+Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов")
+Rel_Left(apiGateway, cache, "проверка кеша")
+
+' Обращения и заявки
+Rel_Down(apiGateway, appealAndSupport, "API заявок")
+Rel_Left(appealAndSupport, appealAndSupportDb, "Получение / сохранение заявок")
+
+' Управление приборами
+Rel_Down(apiGateway, deviceManager, "API устройств")
+Rel_Left(deviceManager, deviceTelemetryDB, "Получение информации по устройствам")
+Rel_Down(deviceManager, deviceConsumer, "Потребитель телеметрии устройств")
+
+' Message Broker
+Rel_Down(deviceConsumer, messageBroker, "Подписка на изменения телеметрии устройств")
+
+
+' Связь с устройством
+Rel_Down(messageBroker, deviceConnector, "Подписка на изменения телеметрии устройств")
+Rel_Up(devices, deviceConnector, "связь с утсройствами", "grpc")
+
+' Управление профилем
+Rel_Down(apiGateway, userProfile, "API карточки пользователя")
+Rel_Left(userProfile, userProfileDb, "Получение / сохранения информации о пользователе")
+
+
+@enduml
