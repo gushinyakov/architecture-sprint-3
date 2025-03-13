@@ -1,0 +1,33 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title "Умный Дом: Диаграмма конекста"
+
+Person(user, "Пользователь", "Управляет умным домом через веб или мобильное приложения")
+Person(admin, "Администратор", "Администрирует систему. Обрабатывает заявки. Назначает тех специалистов")
+Person(tech, "Тех. Специалсит", "Устанавливает и обслуживает приборыы умного дома")
+
+System_Boundary("SmartHomeSystem", "Система умного дома") {
+    System(web, "Single Page App", "Клиентское web приложение для взаимодействия с умным домом")
+    System(mobile, "Mobile App", "Мобильное приложение для взаимодействия с умным домом")
+    System(deviceConnector, "Device Connector", "Сервис для взаимодействия с реальными устройствами")
+}
+
+System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
+
+' Взимодействие пользователей с приложением
+Rel_Down(user, web, "Управление умным домом", "HTTP/REST")
+Rel_Down(user, mobile, "Управление умным домом", "HTTP/REST")
+Rel_Down(admin, web, "Администрирование устройст. Обработка заявок", "HTTP/REST")
+Rel_Down(tech, mobile, "Обслуживание умного дама", "HTTP/REST")
+
+' Взимодействие серивисов с устройствами
+Rel_Down(web, deviceConnector, "Обработанные запросы / ответы от устройств", "HTTP/gRPC")
+Rel_Down(mobile, deviceConnector, "Обработанные запросы / ответы от устройств", "HTTP/gRPC")
+
+
+' Взимодействие приборов с сервисами
+Rel_Up(devices, deviceConnector, "связь с утсройствами", "IoT протоколы")
+
+
+@enduml

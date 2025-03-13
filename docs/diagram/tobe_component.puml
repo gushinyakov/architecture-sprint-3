@@ -1,0 +1,127 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title "Умный Дом: Диаграмма компонентов - устройства"
+
+AddElementTag("db", $bgColor="#873512")
+UpdateContainerBoundaryStyle($bgColor="438dd5", $fontColor="white")
+
+Person(user, "Пользователь", "Управляет умным домом через веб или мобильное приложения")
+Person(admin, "Администратор", "Администрирует систему. Обрабатывает заявки. Назначает тех специалистов")
+Person(tech, "Тех. Специалсит", "Устанавливает и обслуживает приборыы умного дома")
+
+System_Boundary("SmartHomeSystem", "Система умного дома") {
+    Boundary("ClientUser", "Клиент пользователя") {
+        Container(clientUserWeb, "Single Page App", "React", "Клиентское web приложение для взаимодействия с умным домом")
+        Container(clientUserMobile, "Mobile App", "Flutter", "Мобильное приложение для взаимодействия с умным домом")
+    }
+    Boundary("ClientAdmin", "Клиент администратора") {
+        Container(clientAdminWeb, "Single Page App", "React", "Клиентское web приложение для администрирования умного дома")
+    }
+    Boundary("ClientTech", "Клиент администратора") {
+        Container(clientTechMobile, "Mobile App", "Flutter", "Мобильное приложение для тех специалистов")
+    }
+
+    Boundary("Gateway", "Api Gateway") {
+        Container(apiGateway, "API Gateway", "Kong", "Единая точка входа для всех клиентских запросов. Маршрутизация. Авторизация")
+        ContainerDb(cache, "Кеш", "Redis", "Кеш запросов", $tags="db")
+    }
+
+    Boundary("Device", "Приборы") {
+        Container_Boundary(DeviceManagerCommand, "Управление командами") {
+            Component(deviceManagerCommandApi, "API для команд устройств", "java", "API для отправки команд в прибор")
+            Component(deviceManagerCommandGuard, "Guard для отправка команд", "java", "Проверка валидности команд")
+            Component(deviceManagerCommandProducer, "Producer команд", "kafka", "Отправка команд в шину")
+        }
+
+        Container_Boundary(DeviceManagerTelemetry, "Обработка входящей телеметрии с устройств") {
+            Component(deviceManagerTelemetryConsumer, "Consumer телеметрии", "kafka", "Получение необработанных данных")
+            Component(deviceManagerTelemetryMapping, "Обработка телеметрии с устройств", "java", "Маппинг данных на основе прошивок")
+            Component(deviceManagerTelemetryProducer, "Producer обработанной телеметрии", "kafka", "Отправка обработанной телеметрии в шину")
+        }
+
+        Container_Boundary(DeviceManagerTelemetryStorage, "Хранение всей телеметрии с устройств") {
+            Component(deviceManagerTelemetryStorageConsumer, "Consumer обработанной телеметрии", "kafka", "Получение обработанных данных")
+            Component(deviceManagerTelemetryStorageApi, "API Получение обработанной телеметрии", "java")
+            ContainerDb(deviceManagerTelemetryStorageDB, "БД обработанной телеметрии", "mongoDB", "БД для хранения обработанных данных", $tags="db")
+        }
+
+        Container_Boundary(DeviceManagerInventory, "Inventory устройств") {
+            Component(deviceManagerInventoryApi, "API для Inventory", "java", "CRUD для устройств. Перепрошивка устройств")
+            ContainerDb(deviceManagerInventoryDB, "БД для Inventory", "mongoDB", "БД для хранения информации об устройствах", $tags="db")
+            ContainerDb(deviceManagerInventoryS3, "S3 для прошивок", "minio", "S3 для хранения прошивок устройств", $tags="db")
+        }
+
+        Container_Boundary(DeviceManagerMonitoring, "Monitoring устройств") {
+            Component(deviceManagerMonitoringConsumer, "Consumer обработанной телеметрии", "kafka", "Получение обработанных данных")
+            Component(deviceManagerMonitoringApi, "API для получение данных", "java", "Состояние приборов. Аналитика")
+            ContainerDb(deviceManagerMonitoringDb, "БД для мониторинга и аналитики", "ClickHouse", $tags="db")
+        }
+    }
+
+    Boundary("MessageBroker", "Message Broker") {
+        Container_Boundary(messageBroker, "Message Broker", "Kafka") {
+            Component(messageBrokerTelemetry, "Topic: Device Telemetry", "kafka", "Обработанная телеметрия устройств")
+            Component(messageBrokerRawTelemetry, "Topic: Device Raw Telemetry", "kafka", "Необработанная телеметрия с устройств")
+            Component(messageBrokerCommand, "Topic: Device Command", "kafka", "Команды устройств")
+        }
+    }
+
+    Boundary("DeviceConnector", "Связь с устройством") {
+        Container(deviceConnector, "Device Connector", "Go", "Сервис для взаимодействия с реальными приборами")
+    }
+
+}
+
+System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
+
+' Взимодействие пользователей с приложением
+Rel_Down(user, clientUserWeb, "Управление умным домом", "HTTP/REST")
+Rel_Down(user, clientUserMobile, "Управление умным домом", "HTTP/REST")
+Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок", "HTTP/REST")
+Rel_Down(tech, clientTechMobile, "Обслуживание умного дама", "HTTP/REST")
+
+' Взимодействие gateway
+Rel_Down(clientUserWeb,apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Left(apiGateway, cache, "проверка кеша", "Redis")
+
+Rel_Down(apiGateway, deviceManagerCommandApi, "API для отправки команд", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerTelemetryStorageApi, "API для получения телеметрии устройства", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerInventoryApi, "API для получение информации об устройстве", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerMonitoringApi, "API для получения состояния/аналитики устройства", "HTTP/REST")
+
+' Управление приборами
+
+    ' Управление командами
+    Rel_Right(deviceManagerCommandApi, deviceManagerCommandGuard, "Проверка валидности команд", "HTTP/REST")
+    Rel_Down(deviceManagerCommandApi, deviceManagerCommandProducer, "Отправка команд в сервис prodcuer", "HTTP/Async")
+    Rel_Down(deviceManagerCommandProducer, messageBrokerCommand, "Отправка команд в шину", "Kafka")
+
+    'Обработка входящей телеметрии с приборов'
+    Rel_Down(deviceManagerTelemetryConsumer, deviceManagerTelemetryMapping, "Обработка входящей телеметрии", "HTTP/REST")
+    Rel_Down(deviceManagerTelemetryMapping, deviceManagerTelemetryProducer, "Отправка обработанной телеметрии в сервис producer", "HTTP/Async")
+    Rel_Up(messageBrokerRawTelemetry, deviceManagerTelemetryConsumer, "Получение необработанной телеметрии", "HTTP/Async")
+    Rel_Down(deviceManagerTelemetryProducer, messageBrokerTelemetry, "Отправка обработанной телеметрии в шину", "Kafka")
+
+    ' Хранение телеметрии с устройств
+    Rel_Down(deviceManagerTelemetryStorageApi, deviceManagerTelemetryStorageDB, "API получение обработанной телеметрии", "JDBC")
+    Rel_Down(deviceManagerTelemetryStorageConsumer, deviceManagerTelemetryStorageDB, "Сохранение обработанной телеметрии", "JDBC")
+    Rel_Up(messageBrokerTelemetry, deviceManagerTelemetryStorageConsumer, "получение обработанной телеметрии из шины", "kafka")
+
+    ' Inventory устройств
+    Rel_Down(deviceManagerInventoryApi, deviceManagerInventoryDB, "API inventory", "JDBC")
+    Rel_Left(deviceManagerInventoryDB, deviceManagerInventoryS3, "Получение прошивок", "S3")
+
+    ' Monitoring устройств
+    Rel_Down(deviceManagerMonitoringApi, deviceManagerMonitoringDb, "Получение данных для дашбордов", "JDBC")
+    Rel_Up(messageBrokerTelemetry, deviceManagerMonitoringConsumer, "получение обработанной телеметрии из шины", "Kafka")
+
+' Связь с устройством
+Rel_Down(messageBroker, deviceConnector, "kafka")
+Rel_Up(devices, deviceConnector, "связь с утсройствами", "grpc")
+
+@enduml

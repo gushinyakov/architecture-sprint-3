@@ -1,0 +1,45 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+title "Умный Дом: Диаграмма кода - устройства"
+
+abstract class Firmware {
+    +Long id
+    +String name
+    +String version
+    +Date dateReleased
+}
+
+abstract class AbstractDevice {
+    +Long id
+    +String name
+    +Firmware firmware
+    
+    +void updateFirmware(Firmware firmware)
+    +void turnOn()
+    +void turnOff()
+}
+
+class TemperatureDevice {
+    +int temperature
+
+    +void setTemperature(int temperature)
+}
+
+abstract class ElectricityDevice {
+    +int voltage
+    +int current
+}
+
+class LampDevice {
+    +enableAutoOn()
+}
+
+AbstractDevice --> Firmware
+
+TemperatureDevice <|-- AbstractDevice
+
+ElectricityDevice <|-- AbstractDevice
+LampDevice <|-- ElectricityDevice
+
+@enduml
