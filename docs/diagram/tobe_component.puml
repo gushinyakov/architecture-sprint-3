@@ -69,7 +69,7 @@ System_Boundary("SmartHomeSystem", "Система умного дома") {
     }
 
     Boundary("DeviceConnector", "Связь с устройством") {
-        Container(deviceConnector, "Device Conntector", "Go", "Сервис для взаимодействия с реальными приборами")
+        Container(deviceConnector, "Device Connector", "Go", "Сервис для взаимодействия с реальными приборами")
     }
 
 }
