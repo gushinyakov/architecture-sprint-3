@@ -10,7 +10,7 @@ Person(tech, "Тех. Специалсит", "Устанавливает и об
 System_Boundary("SmartHomeSystem", "Система умного дома") {
     System(web, "Single Page App", "Клиентское web приложение для взаимодействия с умным домом")
     System(mobile, "Mobile App", "Мобильное приложение для взаимодействия с умным домом")
-    System(deviceConnector, "Device Conntector", "Сервис для взаимодействия с реальными устройствами")
+    System(deviceConnector, "Device Connector", "Сервис для взаимодействия с реальными устройствами")
 }
 
 System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
