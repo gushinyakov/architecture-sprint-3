@@ -8,18 +8,26 @@ Person(admin, "Администратор", "Администрирует сис
 Person(tech, "Тех. Специалсит", "Устанавливает и обслуживает приборыы умного дома")
 
 System_Boundary("SmartHomeSystem", "Система умного дома") {
-    System(monolith, "Монолитное приложение", "Web приложение для управления умным домом")
+    System(web, "Single Page App", "Клиентское web приложение для взаимодействия с умным домом")
+    System(mobile, "Mobile App", "Мобильное приложение для взаимодействия с умным домом")
+    System(deviceConnector, "Device Conntector", "Сервис для взаимодействия с реальными устройствами")
 }
 
 System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
 
 ' Взимодействие пользователей с приложением
-Rel_Down(user, monolith, "Управление умным домом")
-Rel_Down(admin, monolith, "Администрирование устройст. Обработка заявок")
-Rel_Down(tech, monolith, "Обслуживание умного дама")
+Rel_Down(user, web, "Управление умным домом", "HTTP/REST")
+Rel_Down(user, mobile, "Управление умным домом", "HTTP/REST")
+Rel_Down(admin, web, "Администрирование устройст. Обработка заявок", "HTTP/REST")
+Rel_Down(tech, mobile, "Обслуживание умного дама", "HTTP/REST")
+
+' Взимодействие серивисов с устройствами
+Rel_Down(web, deviceConnector, "Обработанные запросы / ответы от устройств", "HTTP/gRPC")
+Rel_Down(mobile, deviceConnector, "Обработанные запросы / ответы от устройств", "HTTP/gRPC")
+
 
 ' Взимодействие приборов с сервисами
-Rel_Up(devices, monolith, "связь с утсройствами")
+Rel_Up(devices, deviceConnector, "связь с утсройствами", "IoT протоколы")
 
 
 @enduml

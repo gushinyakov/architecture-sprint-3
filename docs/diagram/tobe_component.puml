@@ -41,7 +41,7 @@ System_Boundary("SmartHomeSystem", "Система умного дома") {
             Component(deviceManagerTelemetryProducer, "Producer обработанной телеметрии", "kafka", "Отправка обработанной телеметрии в шину")
         }
 
-        Container_Boundary(DeviceManagerTelemetryStorage, "Хранение телеметрии с устройств") {
+        Container_Boundary(DeviceManagerTelemetryStorage, "Хранение всей телеметрии с устройств") {
             Component(deviceManagerTelemetryStorageConsumer, "Consumer обработанной телеметрии", "kafka", "Получение обработанных данных")
             Component(deviceManagerTelemetryStorageApi, "API Получение обработанной телеметрии", "java")
             ContainerDb(deviceManagerTelemetryStorageDB, "БД обработанной телеметрии", "mongoDB", "БД для хранения обработанных данных", $tags="db")
@@ -77,51 +77,51 @@ System_Boundary("SmartHomeSystem", "Система умного дома") {
 System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
 
 ' Взимодействие пользователей с приложением
-Rel_Down(user, clientUserWeb, "Управление умным домом")
-Rel_Down(user, clientUserMobile, "Управление умным домом")
-Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок")
-Rel_Down(tech, clientTechMobile, "Обслуживание умного дама")
+Rel_Down(user, clientUserWeb, "Управление умным домом", "HTTP/REST")
+Rel_Down(user, clientUserMobile, "Управление умным домом", "HTTP/REST")
+Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок", "HTTP/REST")
+Rel_Down(tech, clientTechMobile, "Обслуживание умного дама", "HTTP/REST")
 
 ' Взимодействие gateway
-Rel_Down(clientUserWeb,apiGateway, "маршрутизация запросов")
-Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов")
-Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов")
-Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов")
-Rel_Left(apiGateway, cache, "проверка кеша")
+Rel_Down(clientUserWeb,apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Left(apiGateway, cache, "проверка кеша", "Redis")
 
-Rel_Down(apiGateway, deviceManagerCommandApi, "API для отправки команд")
-Rel_Down(apiGateway, deviceManagerTelemetryStorageApi, "API для получения телеметрии устройства")
-Rel_Down(apiGateway, deviceManagerInventoryApi, "API для получение информации об устройстве")
-Rel_Down(apiGateway, deviceManagerMonitoringApi, "API для получения состояния/аналитики устройства")
+Rel_Down(apiGateway, deviceManagerCommandApi, "API для отправки команд", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerTelemetryStorageApi, "API для получения телеметрии устройства", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerInventoryApi, "API для получение информации об устройстве", "HTTP/REST")
+Rel_Down(apiGateway, deviceManagerMonitoringApi, "API для получения состояния/аналитики устройства", "HTTP/REST")
 
 ' Управление приборами
 
     ' Управление командами
-    Rel_Right(deviceManagerCommandApi, deviceManagerCommandGuard, "Проверка валидности команд")
-    Rel_Down(deviceManagerCommandApi, deviceManagerCommandProducer, "Отправка команд в сервис prodcuer")
-    Rel_Down(deviceManagerCommandProducer, messageBrokerCommand, "Отправка команд в шину")
+    Rel_Right(deviceManagerCommandApi, deviceManagerCommandGuard, "Проверка валидности команд", "HTTP/REST")
+    Rel_Down(deviceManagerCommandApi, deviceManagerCommandProducer, "Отправка команд в сервис prodcuer", "HTTP/Async")
+    Rel_Down(deviceManagerCommandProducer, messageBrokerCommand, "Отправка команд в шину", "Kafka")
 
     'Обработка входящей телеметрии с приборов'
-    Rel_Down(deviceManagerTelemetryConsumer, deviceManagerTelemetryMapping, "Обработка входящей телеметрии")
-    Rel_Down(deviceManagerTelemetryMapping, deviceManagerTelemetryProducer, "Отправка обработанной телеметрии в сервис producer")
-    Rel_Up(messageBrokerRawTelemetry, deviceManagerTelemetryConsumer, "Получение необработанной телеметрии")
-    Rel_Down(deviceManagerTelemetryProducer, messageBrokerTelemetry, "Отправка обработанной телеметрии в шину")
+    Rel_Down(deviceManagerTelemetryConsumer, deviceManagerTelemetryMapping, "Обработка входящей телеметрии", "HTTP/REST")
+    Rel_Down(deviceManagerTelemetryMapping, deviceManagerTelemetryProducer, "Отправка обработанной телеметрии в сервис producer", "HTTP/Async")
+    Rel_Up(messageBrokerRawTelemetry, deviceManagerTelemetryConsumer, "Получение необработанной телеметрии", "HTTP/Async")
+    Rel_Down(deviceManagerTelemetryProducer, messageBrokerTelemetry, "Отправка обработанной телеметрии в шину", "Kafka")
 
     ' Хранение телеметрии с устройств
-    Rel_Down(deviceManagerTelemetryStorageApi, deviceManagerTelemetryStorageDB, "API получение обработанной телеметрии")
-    Rel_Down(deviceManagerTelemetryStorageConsumer, deviceManagerTelemetryStorageDB, "Сохранение обработанной телеметрии")
-    Rel_Up(messageBrokerTelemetry, deviceManagerTelemetryStorageConsumer, "получение обработанной телеметрии из шины")
+    Rel_Down(deviceManagerTelemetryStorageApi, deviceManagerTelemetryStorageDB, "API получение обработанной телеметрии", "JDBC")
+    Rel_Down(deviceManagerTelemetryStorageConsumer, deviceManagerTelemetryStorageDB, "Сохранение обработанной телеметрии", "JDBC")
+    Rel_Up(messageBrokerTelemetry, deviceManagerTelemetryStorageConsumer, "получение обработанной телеметрии из шины", "kafka")
 
     ' Inventory устройств
-    Rel_Down(deviceManagerInventoryApi, deviceManagerInventoryDB, "API inventory")
-    Rel_Left(deviceManagerInventoryDB, deviceManagerInventoryS3, "Получение прошивок")
+    Rel_Down(deviceManagerInventoryApi, deviceManagerInventoryDB, "API inventory", "JDBC")
+    Rel_Left(deviceManagerInventoryDB, deviceManagerInventoryS3, "Получение прошивок", "S3")
 
     ' Monitoring устройств
-    Rel_Down(deviceManagerMonitoringApi, deviceManagerMonitoringDb, "Получение данных для дашбордов")
-    Rel_Up(messageBrokerTelemetry, deviceManagerMonitoringConsumer, "получение обработанной телеметрии из шины")
+    Rel_Down(deviceManagerMonitoringApi, deviceManagerMonitoringDb, "Получение данных для дашбордов", "JDBC")
+    Rel_Up(messageBrokerTelemetry, deviceManagerMonitoringConsumer, "получение обработанной телеметрии из шины", "Kafka")
 
 ' Связь с устройством
-Rel_Down(messageBroker, deviceConnector, "")
+Rel_Down(messageBroker, deviceConnector, "kafka")
 Rel_Up(devices, deviceConnector, "связь с утсройствами", "grpc")
 
 @enduml

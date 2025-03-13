@@ -4,18 +4,18 @@ entity firmware {
     id: long
     version: String
     ' Ready_to_release | Release | Develop
-    status: String
+    status: Enum
 }
 
 entity device_type {
     id: long
     ' electricity_lamp | temperature | ....
-    type: String
+    type: Enum
 }
 
 entity device_telemetry {
     id: long
-    data: String
+    data: int
     --
     *device_id : long<<FK>>
 }
@@ -23,7 +23,7 @@ entity device_telemetry {
 entity device {
     id: long
     name: String
-    status: String
+    status: Enum
     serial_number: String
     --
     *firmware_id : long<<FK>>

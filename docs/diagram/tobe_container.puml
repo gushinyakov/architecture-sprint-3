@@ -39,7 +39,6 @@ System_Boundary("SmartHomeSystem", "Система умного дома") {
     Boundary("Device", "Управление приборами") {
         Container(deviceManager, "Управление приборами", "Java", "Хранение/обработка телеметрии. Inventory. Отправка команд")
         ContainerDb(deviceTelemetryDB, "БД", "MongoDB", "Телеметрия", $tags="db")
-        Container(deviceConsumer, "Consumer телеметрии", "kafka", "Принятие телеметрии")
     }
 
     Boundary("MessageBroker", "Message Broker") {
@@ -55,38 +54,37 @@ System_Boundary("SmartHomeSystem", "Система умного дома") {
 System_Ext(devices, "Устройства умного дома", "Датчики отопления, конфиционеров, дверей, освещение и др.")
 
 ' Взимодействие пользователей с приложением
-Rel_Down(user, clientUserWeb, "Управление умным домом")
-Rel_Down(user, clientUserMobile, "Управление умным домом")
-Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок")
-Rel_Down(tech, clientTechMobile, "Обслуживание умного дама")
+Rel_Down(user, clientUserWeb, "Управление умным домом", "HTTP/REST")
+Rel_Down(user, clientUserMobile, "Управление умным домом", "HTTP/REST")
+Rel_Down(admin, clientAdminWeb, "Администрирование устройст. Обработка заявок", "HTTP/REST")
+Rel_Down(tech, clientTechMobile, "Обслуживание умного дама", "HTTP/REST")
 
 ' Взимодействие gateway
-Rel_Down(clientUserWeb,apiGateway, "маршрутизация запросов")
-Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов")
-Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов")
-Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов")
-Rel_Left(apiGateway, cache, "проверка кеша")
+Rel_Down(clientUserWeb, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientUserMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientAdminWeb, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Down(clientTechMobile, apiGateway, "маршрутизация запросов", "HTTP/REST")
+Rel_Left(apiGateway, cache, "проверка кеша", "Redis")
 
 ' Обращения и заявки
-Rel_Down(apiGateway, appealAndSupport, "API заявок")
-Rel_Left(appealAndSupport, appealAndSupportDb, "Получение / сохранение заявок")
+Rel_Down(apiGateway, appealAndSupport, "API заявок", "HTTP/REST")
+Rel_Left(appealAndSupport, appealAndSupportDb, "Получение / сохранение заявок", "JDBC")
 
 ' Управление приборами
-Rel_Down(apiGateway, deviceManager, "API устройств")
-Rel_Left(deviceManager, deviceTelemetryDB, "Получение информации по устройствам")
-Rel_Down(deviceManager, deviceConsumer, "Потребитель телеметрии устройств")
+Rel_Down(apiGateway, deviceManager, "API устройств",  "HTTP/REST")
+Rel_Left(deviceManager, deviceTelemetryDB, "Получение информации по устройствам", "JDBC")
 
 ' Message Broker
-Rel_Down(deviceConsumer, messageBroker, "Подписка на изменения телеметрии устройств")
+Rel_Down(messageBroker, deviceManager, "Подписка на изменения телеметрии устройств", "Kafka")
 
 
 ' Связь с устройством
-Rel_Down(messageBroker, deviceConnector, "Подписка на изменения телеметрии устройств")
+Rel_Down(messageBroker, deviceConnector, "Подписка на изменения телеметрии устройств", "Kafka")
 Rel_Up(devices, deviceConnector, "связь с утсройствами", "grpc")
 
 ' Управление профилем
-Rel_Down(apiGateway, userProfile, "API карточки пользователя")
-Rel_Left(userProfile, userProfileDb, "Получение / сохранения информации о пользователе")
+Rel_Down(apiGateway, userProfile, "API карточки пользователя", "HTTP/REST")
+Rel_Left(userProfile, userProfileDb, "Получение / сохранения информации о пользователе", "JDBC")
 
 
 @enduml
